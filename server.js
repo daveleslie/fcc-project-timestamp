@@ -3,6 +3,8 @@
 
 // init project
 var express = require('express');
+var bodyParser = require('body-parser');
+
 var app = express();
 
 // enable CORS (https://en.wikipedia.org/wiki/Cross-origin_resource_sharing)
@@ -13,10 +15,15 @@ app.use(cors({optionsSuccessStatus: 200}));  // some legacy browsers choke on 20
 // http://expressjs.com/en/starter/static-files.html
 app.use(express.static('public'));
 
+app.use(bodyParser.urlencoded({extended: false}));
+app.use(bodyParser.json());
+
 // http://expressjs.com/en/starter/basic-routing.html
 app.get("/", function (req, res) {
   res.sendFile(__dirname + '/views/index.html');
 });
+
+
 
 // api request logger
 app.use("/", (req, res, next) => {
@@ -26,22 +33,77 @@ app.use("/", (req, res, next) => {
 });
 
 // your first API endpoint... 
-app.get("/api/hello", function (req, res) {
-  res.json({greeting: 'hello API'});
+app.get("/api/:word/echo", function echo(req, res) {
+  res.json({echo: req.params.word});
 });
 
 // date request endpoint
-app.get("/api/2015-12-25", (req, res) => {
-  var date = new Date("2015-12-25");
-  var utcDate = date.toString();
-  var unixTimeStamp = Math.floor(date.getTime()/1000);
-  res.json({
-    unix: unixTimeStamp,
-    utc: utcDate
-  });
+// app.get("/api/2015-12-25", (req, res) => {
+//   let date = new Date("2015-12-25");
+//   let utcDate = date.toString();
+//   let unixTimeStamp = Math.floor(date.getTime()/1000);
+//   res.json({
+//     unix: unixTimeStamp,
+//     utc: utcDate
+//   });
+// });
+
+// date request endpoint with params
+app.get("/api/:date?", (req, res) => {
+  res.json(returnDate(req.params.date));
 });
 
+const returnDate = function(dateString) {
+  let date;
+  if (!dateString) {
+    date = new Date();
+  } else {
+    if (!isNaN(dateString)) {
+      date = new Date(parseInt(dateString));
+    } else {
+      date = new Date(dateString);
+    }
+  }
+  if (date.toString() === 'Invalid Date') {
+    return {
+      error: date.toString()
+    };
+  } else {
+    return {
+      unix: date.getTime(),
+      utc: date.toUTCString()
+    };
+  }
+};
 
+// date request form handler
+app.route('/api/date')
+  .post((req,res) => {
+    let {dateString: dateString} = req.body;
+    res.json(returnDate(dateString));
+  //   let date;
+  //   if (!dateString) {
+  //     date = new Date();
+  //   } else {
+  //     if (!isNaN(dateString)) {
+  //       date = new Date(parseInt(dateString));
+  //     } else {
+  //       date = new Date(dateString);
+  //     }
+  //   }
+  //   if (date.toString() === 'Invalid Date') {
+  //     res.json({
+  //       error: date.toString()
+  //     });
+  //   } else {
+  //     res.json({
+  //       unix: date.getTime(),
+  //       utc: date.toUTCString()
+  //     });
+  //   }
+  //   // let utcDate = date.toString();
+  //   // let unixTimeStamp = Math.floor(date.getTime()/1000);
+  });
 
 // listen for requests :)
 var port = process.env.PORT || 3000;
